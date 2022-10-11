@@ -1,24 +1,21 @@
 import difflib as dl
 import os
 from datetime import datetime
+from numpy import number
 import pandas as pd
 import tkinter as tk
 from tkinter import Canvas, OptionMenu, StringVar, filedialog as fd
 from tkinter import ttk
 from tkinter.messagebox import showinfo
+from pandastable import Table, TableModel
 
 
 root = tk.Tk()
 root.title('Group brands')
 # root.resizable(False, False)
-root.geometry('600x300')
+root.geometry('1200x300')
 root.focus()
 csv_file = None
-
-keys = [
-    f"Similar Brand {i+1}" for i in range(50)
-]
-# print(keys)
 
 
 def selected_column(selected_column,
@@ -37,8 +34,8 @@ def selected_column(selected_column,
     #                 btn
     #                 )
     # """
-    global keys
-    canvas = Canvas(root, width=600, height=300, bg="SpringGreen2")    
+    
+    canvas = Canvas(root, width=1200, height=300, bg="SpringGreen2")    
     # Add a text in Canvas
     canvas.create_text(300, 150, text="Loading Data in the background",
                        fill="black", font=('Helvetica 15 bold'))
@@ -47,10 +44,9 @@ def selected_column(selected_column,
     drop.pack_forget()
     root.update()
     groups = []    
-    # print(dataframe[selected_column])
-    keys = list(input_records[0].keys()) + keys
+
     my_brands = dataframe[selected_column].values
-    for r in input_records:
+    for r in input_records[:30]:
         temp_record = r.copy()
         i = r[selected_column]
         group = dl.get_close_matches(i, my_brands,cutoff=.75, n=500)        
@@ -60,8 +56,37 @@ def selected_column(selected_column,
         groups.append(temp_record)
 
     print(len(groups))
+    canvas.pack_forget()
     df = pd.DataFrame(groups)
-    # df.rename(columns={"0": selected_column}, inplace=True)
+    # for index, row in df.iterrows():
+    #     showinfo(
+    #     title=index,  message=row.__str__()
+    # )    
+
+    
+    for index, row in df.iterrows():
+        number_of_key = 0
+        for y in df.keys():
+            w = tk.Text(root, width=15, height=2)
+            w.grid(row=index,column=number_of_key)
+            try:
+                w.insert(tk.END, df[y][index])
+            except Exception as e:
+                print(e)
+            number_of_key += 1
+    
+    # x = input()
+    scrollbar = tk.Scrollbar(root)
+    scrollbar.pack(side = tk.RIGHT, fill = tk.BOTH)
+    root.config(yscrollcommand = scrollbar.set)
+  
+    # setting scrollbar command parameter 
+    # to listbox.yview method its yview because
+    # we need to have a vertical view
+    root.config(command = root.yview)
+    # root.state("zoomed")
+    root.update()
+
 
     df.to_csv(f'Brands_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.csv', index=False)
     showinfo(
