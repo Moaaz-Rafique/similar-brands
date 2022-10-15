@@ -36,8 +36,11 @@
 # df.dropna(how='all', inplace=True)
 
 # df.to_csv("removed_empty.csv", index=False)
+
+
 from tkinter import *
 from pandastable import Table, TableModel
+from tkinter import ttk
 
 class TestApp(Frame):
         """Basic test frame for the table"""
@@ -45,16 +48,25 @@ class TestApp(Frame):
             self.parent = parent
             Frame.__init__(self)
             self.main = self.master
-            self.main.geometry('600x400+200+100')
+            self.main.geometry('600x400')
             self.main.title('Table app')
             f = Frame(self.main)
             f.pack(fill=BOTH,expand=1)
             df = TableModel.getSampleData()
-            self.table = pt = Table(f, dataframe=df,
-                                    showtoolbar=True, showstatusbar=True)
+            self.table = pt = Table(f, dataframe=df)
             pt.show()
             return
 
 app = TestApp()
 #launch the app
+
+open_button = ttk.Button(
+    app,
+    text='Select CSV',
+    command=lambda: print("sdf")
+)
+
+
+open_button.pack(expand=True)
+
 app.mainloop()
