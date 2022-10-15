@@ -16,6 +16,12 @@ root.geometry('1200x800')
 root.focus()
 csv_file = None
 
+def row_style(row):
+    if row["Similar Brand 1"].isnull():
+        pd.Series('background-color: red', row.index)
+    else:
+        pd.Series('', row.index)
+
 
 def get_close_matches_icase(word, possibilities, *args, **kwargs):
     """ Case-insensitive version of difflib.get_close_matches """
@@ -98,7 +104,7 @@ def selected_column(selected_column,
         # print(len(groups)+1, i, len(group))
 
         for g in range(len(group)):
-            temp_record[f"Similar Brand {g+1}"] = group[g]
+            temp_record[f"Similar Brand {g}"] = group[g]
         temp_record["Linked rows"] = linkedRows
         groups.append(temp_record)
 
@@ -109,9 +115,13 @@ def selected_column(selected_column,
     base_df.dropna(how='all', inplace=True)
     base_df.dropna(how='all', inplace=True, axis=1)
     base_df['Alias'] = base_df[selected_column]
-    # base_df.drop()
+    base_df.drop(columns=["Similar Brand 0"], inplace=True)
     try:
-        df = base_df.dropna(axis=0, subset=[f"Similar Brand 1"])
+        # df = base_df.dropna(axis=0, subset=[f"Similar Brand 1"])
+        df = base_df
+        # df
+        df.style.apply(row_style)
+
     except:
         print("No matches were found")
     
@@ -119,6 +129,7 @@ def selected_column(selected_column,
     frame = tk.Frame(root, height=800, width=1200)
     frame.pack()
     pt = Table(frame, dataframe=df, width=1200)
+    
     pt.show()
     save_button = ttk.Button(
         root,
