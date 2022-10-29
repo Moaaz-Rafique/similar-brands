@@ -223,8 +223,8 @@ def selected_column(selected_column,
         groups = []
         my_brands = dataframe[selected_column].values
 
-        input_records = input_records[-135:-100]
-        my_brands = my_brands[-135:-100]
+        # input_records = input_records[-135:-100]
+        # my_brands = my_brands[-135:-100]
 
         for r in input_records:
             temp_record = r.copy()
