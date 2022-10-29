@@ -2,27 +2,26 @@ import difflib as dl
 import itertools
 import os
 from datetime import datetime
+from traceback import print_tb
 import pandas as pd
 import tkinter as tk
 from tkinter import Canvas, OptionMenu, StringVar, filedialog as fd
 from tkinter import ttk
 from tkinter.messagebox import showinfo
 from pandastable import Table
-import numpy as np
 root = tk.Tk()
 root.title('Group brands')
-# root.resizable(False, False)
 root.geometry('1200x800')
 root.focus()
 csv_file = None
-
+currentIndex = 0
 
 def update_links(row, similar_brand_keys, input_records, selected_column):
     links_group = [row[selected_column]]
     for i in similar_brand_keys:
         if not isinstance(row[i], float):
             links_group.append(row[i])
-    # group()
+
     r2_index = 0
     linkedRows = []
     for r2 in input_records:
@@ -35,33 +34,66 @@ def update_links(row, similar_brand_keys, input_records, selected_column):
 
 def update_df(pt, original_df, input_records, selected_column):
     df = pt.model.df
-    all_keys = df.keys()
+    global currentIndex
+    if (currentIndex+10) > len(df):
+        showinfo(
+            title='Output',  message="Completed All"
+        )        
+        return 
 
+    print("shesdksafkafsj", )
+    all_keys = df.keys()
     similar_brand_keys = []
     for i in all_keys:
         if 'Similar Brand ' in i:
-            print(i)
             similar_brand_keys.append(i)
-    print(similar_brand_keys)
 
     for index, row in df.iterrows():
         updatedLinks = update_links(
             row, similar_brand_keys, input_records, selected_column)
         try:
             df["Linked rows"][index] = updatedLinks
+            if row['Alias']:
+                for link in updatedLinks:
+                    df['Alias'][link-1] = df['Alias'][index]
+                    # print("Animation")
         except Exception as e:
             print(e)
     pt.model.df = df
-    original_df = df
-    pt.redraw()
-    #     updated = False
-    #     for i in similar_brand_keys:
-    #         if isinstance(row[i], float) and isinstance(original_df[i][index], float):
-    #             print("-")
-    #         else:
-    #             print('are not null both')
+    mask_0 = pt.model.df[selected_column].notnull()
+    for i in pt.model.df:
+        pt.setColorByMask(i, mask_0, 'white')
+    mask_1 = pt.model.df['Alias'].notnull()
+    for i in pt.model.df:
+        pt.setColorByMask(i, mask_1, 'green')
+    # print(len(df) , (currentIndex ))
+    pt.update_rowcolors()    
+    currentIndex = currentIndex + 10
+    if len(df) > (currentIndex + 10):
+        pt.child.model.df = df[currentIndex:currentIndex+10]
+    else:
+        pt.child.model.df = df[-10:]
+    # pt.child.setColorbyValue()
+    try:
+        pt.child.setRowColors(rows=[2], clr='#3776ab', cols=[1])
+    except Exception as e:
+        print("error:2")
+    # try:
+    try:
+        pt.child.setRowColors(rows=[12], clr='#3776ab', cols=[1])
+    except Exception as e:
+        print("error:3")
+    try:
+        pt.child.setRowColors(rows=[22], clr='#3776ab', cols=[1])
+    except Exception as e:
+        print("error:4")
+    try:
+        pt.child.setRowColors(rows=[32], clr='#3776ab', cols=[1])
+    except Exception as e:
+        print("error:5")
+    pt.child.redraw()
 
-    # print(keys)
+
 
 
 def row_style(row):
@@ -72,11 +104,8 @@ def row_style(row):
 
 
 def get_close_matches_icase(word, possibilities, *args, **kwargs):
-    """ Case-insensitive version of difflib.get_close_matches """
-
     lword = word.lower()
     lpos = {}
-
     for p in possibilities:
         if p.lower() not in lpos:
             lpos[p.lower()] = [p]
@@ -88,10 +117,9 @@ def get_close_matches_icase(word, possibilities, *args, **kwargs):
     return list(ret)
 
 
-def save_and_finalize(base_df, df, open_btn, save_button, frame, update_btn):
+def save_and_finalize(base_df, df, open_btn, save_button, frame, update_btn, undo_btn, prev_btn):
 
     for index, row in df.iterrows():
-        # print(row['Alias'], row['key'])
         if isinstance(row["Linked rows"], list):
             for i in row["Linked rows"]:
                 if row["Alias"]:
@@ -101,9 +129,7 @@ def save_and_finalize(base_df, df, open_btn, save_button, frame, update_btn):
         else:
             if row["Alias"]:
                 base_df["Alias"][index] = row["Alias"]
-            else:
-                print("Sheesh", row)
-    base_df.drop(columns=["Linked rows"],  inplace=True)
+    # base_df.drop(columns=["Linked rows"],  inplace=True)
 
     base_df.to_csv(
         f'Brands_{datetime.now().strftime("%Y-%m-%d-%H-%M-%S")}.csv', index=False)
@@ -111,19 +137,27 @@ def save_and_finalize(base_df, df, open_btn, save_button, frame, update_btn):
         title='Output',  message="File created successfully"
     )
     save_button.pack_forget()
+    undo_btn.pack_forget()
     update_btn.pack_forget()
+    prev_btn.pack_forget()
     frame.pack_forget()
     open_btn.pack(expand=True)
     root.update()
 
 
-def undo_df(pt, df):
+def undo_df(pt):
     pt.undo()
     pt.redraw()
     root.update()
-    print("Sheeesh")
 
-
+def goback(pt):
+    global currentIndex
+    if currentIndex-10 >= 0:
+        currentIndex-=10
+    else:
+        currentIndex = 0
+    pt.child.model.df = pt.model.df[currentIndex:currentIndex+10]
+    pt.child.redraw()
 def selected_column(selected_column,
                     input_records,
                     dataframe,
@@ -132,7 +166,6 @@ def selected_column(selected_column,
                     drop,
                     open_btn):
     canvas = Canvas(root, width=1200, height=800, bg="SpringGreen2")
-    # Add a text in Canvas
     canvas.create_text(600, 350, text="Loading Data in the background",
                        fill="black", font=('Helvetica 15 bold'))
     canvas.pack(expand=True)
@@ -142,11 +175,12 @@ def selected_column(selected_column,
     groups = []
     my_brands = dataframe[selected_column].values
 
-    input_records = input_records[-200:-100]
-    my_brands = my_brands[-200:-100]
+    input_records = input_records[-135:-100]
+    my_brands = my_brands[-135:-100]
 
     for r in input_records:
         temp_record = r.copy()
+        temp_record['Alias'] = ''
         i = r[selected_column]
         group = get_close_matches_icase(i, my_brands, cutoff=.75, n=500)
         r2_index = 0
@@ -159,81 +193,68 @@ def selected_column(selected_column,
 
         if len(group) > 0:
             my_brands = [brand for brand in my_brands if brand not in group]
-        print(len(my_brands))
-
-        # print(len(groups)+1, i, len(group))
-
         for g in range(len(group)):
             temp_record[f"Similar Brand {g}"] = group[g]
         if len(linkedRows):
             temp_record["Linked rows"] = linkedRows
         groups.append(temp_record)
 
-    print("groups length", len(groups))
     canvas.pack_forget()
     root.update()
     base_df = pd.DataFrame(groups)
     base_df.dropna(how='all', inplace=True)
     base_df.dropna(how='all', inplace=True, axis=1)
     base_df['Alias'] = None
-    base_df[base_df['Linked rows'].isnull()]['Alias'] = None
-    base_df['Alias'] = np.where(
-        base_df['Linked rows'].notnull(), 
-        base_df['Alias'],
-        None
-    )
-
     base_df.drop(columns=["Similar Brand 0"], inplace=True)
 
     df = base_df
-    # try:
-    #     print(len(base_df[base_df['column_name'].notnull()]))
-    #     # df.style.apply(row_style,subset=["Similar Brand 0"], axis=1)
-
-    # except:
-    #     print("No matches were found")
-
-    frame = tk.Frame(root, height=800, width=1200)
-    frame.pack()
-    pt = Table(frame, dataframe=df, width=1200, height=600)
-    # mask = False
-    # mask_1 = pt.model.df['Linked rows'].isnull()
-    # # mask_1 = pt.model.df['Linked rows'].notnull()
-    # print(mask_1)
-    # for i in pt.model.df:
-    #     pt.setColorByMask(i, mask_1, 'red')
-    # pt.
-    pt.show()
+    frame = tk.Frame(root, height=800, width=1000)
+    frame.pack(expand=True,side=tk.LEFT)
+    pt = Table(frame, dataframe=df, width=1000, height=800)
+    # pt.show()
+    global currentIndex
+    pt.createChildTable(pt.model.df[currentIndex:10], title="Shhehhhsh")
     
+    frame1 = tk.Frame(root, height=800, width=200)
+    frame1.pack(side=tk.LEFT)
     undo_button = ttk.Button(
-        root,
+        frame1,
         text='Undo actions',
-        command=lambda: undo_df(
-            pt, df
-
-        )
+        command=lambda: undo_df(pt)
     )
-
+    # pt.se
+    # pt.child.redraw()    
+    # undo_button.grid(row=1,column=5)
+    
     undo_button.pack(expand=True)
     update_csv_button = ttk.Button(
-        root,
+        frame1,
         text='Update Linked rows',
         command=lambda: update_df(
             pt, df, input_records, selected_column
-
         )
     )
+    # update_csv_button.grid(row=2,column=5)
 
     update_csv_button.pack(expand=True)
+    prev_btn = ttk.Button(
+            frame1,
+            text='Prev rows',
+            command=lambda: goback(pt)
+        )
+        # update_csv_button.grid(row=2,column=5)
 
+    prev_btn.pack(expand=True)
     save_button = ttk.Button(
-        root,
+        frame1,
         text='Save CSV',
         command=lambda: save_and_finalize(
-            base_df, pt.model.df, open_btn, save_button, frame, update_csv_button)
+            base_df, pt.model.df, open_btn, save_button, frame, update_csv_button, undo_button, prev_btn)
     )
 
+    # save_button.grid(row=3,column=5)
     save_button.pack(expand=True)
+
     root.update()
     showinfo(
         title='Output',  message="Groups formed successfully"
@@ -262,6 +283,7 @@ def select_file(csv_file, btn):
         )
     csv_file = pd.read_csv(filename)
     options = csv_file.keys()
+    # csv_file['Alias'] = None
 
     v = StringVar(root, "Select a column")
 
@@ -283,7 +305,6 @@ def select_file(csv_file, btn):
     column_btn.pack(expand=True)
 
 
-# open button
 open_button = ttk.Button(
     root,
     text='Select CSV',
