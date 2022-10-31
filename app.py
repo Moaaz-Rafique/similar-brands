@@ -2,7 +2,6 @@ import difflib as dl
 import itertools
 import os
 from datetime import datetime
-from traceback import print_tb
 import pandas as pd
 import tkinter as tk
 from tkinter import Canvas, OptionMenu, StringVar, filedialog as fd
@@ -10,12 +9,15 @@ from tkinter import ttk
 from tkinter.messagebox import showinfo
 from pandastable import Table
 root = tk.Tk()
+
+
 root.title('Group brands')
-root.geometry('1200x800')
+root.geometry('650x650')
 root.focus()
 csv_file = None
 currentIndex = 0
 df = None
+
 
 def update_links(row, similar_brand_keys, input_records, selected_column):
     links_group = [row[selected_column]]
@@ -35,35 +37,7 @@ def update_links(row, similar_brand_keys, input_records, selected_column):
 
 def update_df(pt, original_df, input_records, selected_column):
     global df
-    global currentIndex
-    print(currentIndex, len(df))
-    if (currentIndex + 10) > len(df):
-        showinfo(
-            title='Output',  message="Completed All"
-        )
-        currentIndex = len(df)
-        return
-    for i in pt.model.df.index:
-        df.loc[i+currentIndex] = pt.model.df.loc[i]
-    try:
-        df.drop(['index'], inplace = True, axis = 1)
-        df.drop(['level_0'], inplace = True, axis = 1)
-    except:
-        try:
-            df.drop(['index'], inplace = True, axis = 1)            
-        except:
-            print("not dropping")
-    # if currentIndex + 10 <= len(df):
-    #     for i in range(currentIndex, currentIndex+10):
-    #         df.loc[i] = pt.model.df[i-currentIndex]
-    # else:
-    #     for i in range(len(df)-10, currentIndex+10):
-    #         df.loc[i] = pt.model.df[i-currentIndex]
-        # df[-10:] = pt.model.df
-    df.reset_index(inplace = True)
-    
 
-    print("shesdksafkafsj", )
     all_keys = df.keys()
     similar_brand_keys = []
     for i in all_keys:
@@ -81,17 +55,15 @@ def update_df(pt, original_df, input_records, selected_column):
                     # print("Animation")
         except Exception as e:
             print(e)
-    currentIndex=currentIndex+10
-    if currentIndex + 10 <= len(df):
-        pt.model.df = df[currentIndex:currentIndex+10].copy(deep=True).reset_index()
-    else:
-        pt.model.df = df[-10:].copy(deep=True).reset_index()
-        currentIndex = len(df)
-    try:
-        pt.model.df.drop(['index', 'level_0'], inplace = True, axis = 1)
-        # pt.model.df.drop(, inplace = True, axis = 1)
-    except Exception as e:
-        print(e)
+
+    pt.model.df = df[currentIndex:currentIndex +
+                     10].copy(deep=True).reset_index()
+
+    pt.model.df = df[-10:].copy(deep=True).reset_index()
+    currentIndex = len(df)
+
+    pt.model.df.drop(['index', 'level_0'], inplace=True, axis=1)
+
     mask_0 = pt.model.df[selected_column].notnull()
     for i in pt.model.df:
         pt.setColorByMask(i, mask_0, 'white')
@@ -122,7 +94,7 @@ def get_close_matches_icase(word, possibilities, *args, **kwargs):
     return list(ret)
 
 
-def save_and_finalize(base_df, df, open_btn, save_button, frame, update_btn, undo_btn, prev_btn, frame1):
+def save_and_finalize(base_df, df, open_btn, save_button, frame, update_btn, undo_btn, frame1):
     # global df
     # print(df)
     for index, row in df.iterrows():
@@ -148,7 +120,6 @@ def save_and_finalize(base_df, df, open_btn, save_button, frame, update_btn, und
     save_button.pack_forget()
     undo_btn.pack_forget()
     update_btn.pack_forget()
-    prev_btn.pack_forget()
     frame.pack_forget()
     frame1.pack_forget()
     open_btn.pack(expand=True)
@@ -159,44 +130,6 @@ def undo_df(pt):
     pt.undo()
     pt.redraw()
     root.update()
-
-
-def goback(pt, selected_column):
-    global currentIndex
-
-    global df
-    if currentIndex == len(df):
-        currentIndex -= 20
-    elif currentIndex-10 > 0:
-        currentIndex -= 10
-    else:
-        currentIndex = 0
-    
-    try:
-        df.drop(['index'], inplace = True, axis = 1)
-        df.drop(['level_0'], inplace = True, axis = 1)
-    except:
-        try:
-            df.drop(['index'], inplace = True, axis = 1)            
-        except:
-            print("not dropping")
-    df.reset_index(inplace = True)    
-
-    pt.model.df= df[currentIndex:currentIndex+10].copy(deep=True).reset_index()
-    pt.redraw()
-    try:
-        pt.model.df.drop(['index', 'level_0'], inplace = True, axis = 1)
-        # pt.model.df.drop(, inplace = True, axis = 1)
-    except Exception as e:
-        print(e)
-
-    mask_0 = pt.model.df[selected_column].notnull()
-    for i in pt.model.df:
-        pt.setColorByMask(i, mask_0, 'white')
-    mask_1 = pt.model.df['Alias'].notnull()
-    for i in pt.model.df:
-        pt.setColorByMask(i, mask_1, 'green')
-    pt.redraw()
 
 
 def selected_column(selected_column,
@@ -214,17 +147,17 @@ def selected_column(selected_column,
     drop.pack_forget()
     root.update()
     if not old_file:
-        canvas = Canvas(root, width=1200, height=800, bg="SpringGreen2")
+        canvas = Canvas(root, width=800, height=800, bg="SpringGreen2")
         canvas.create_text(600, 350, text="Loading Data in the background",
-                        fill="black", font=('Helvetica 15 bold'))
+                           fill="black", font=('Helvetica 15 bold'))
         canvas.pack(expand=True)
-        
+
         root.update()
         groups = []
         my_brands = dataframe[selected_column].values
 
-        # input_records = input_records[-135:-100]
-        # my_brands = my_brands[-135:-100]
+        input_records = input_records[-135:-100]
+        my_brands = my_brands[-135:-100]
 
         for r in input_records:
             temp_record = r.copy()
@@ -240,7 +173,8 @@ def selected_column(selected_column,
                 r2_index += 1
 
             if len(group) > 0:
-                my_brands = [brand for brand in my_brands if brand not in group]
+                my_brands = [
+                    brand for brand in my_brands if brand not in group]
             for g in range(len(group)):
                 temp_record[f"Similar Brand {g}"] = group[g]
             if len(linkedRows):
@@ -261,53 +195,59 @@ def selected_column(selected_column,
         base_df = pd.DataFrame(input_records)
     global df
     df = base_df
-    frame = tk.Frame(root, height=800, width=1000)
+    frame = tk.Frame(root, height=650, width=400)
     frame.pack(expand=True, side=tk.LEFT)
     global currentIndex
-    
-    pt = Table(frame, dataframe=df[currentIndex:currentIndex + 10].copy(deep=True), width=1000, height=800)
-    
+
+    pt = Table(frame, dataframe=df, width=400, height=650)
+
     pt.show()
 
-    frame1 = tk.Frame(root, height=800, width=200)
+    frame1 = tk.Frame(root, height=650, width=200)
     frame1.pack(side=tk.RIGHT)
-    undo_button = ttk.Button(
+    undo_button = tk.Button(
         frame1,
         text='Undo actions',
-        command=lambda: undo_df(pt)
+        command=lambda: undo_df(pt),
+        width=200,
+        bg='#ffa0a0'
     )
     # pt.se
     # pt.child.redraw()
     # undo_button.grid(row=1,column=5)
 
-    undo_button.pack(expand=True)
-    update_csv_button = ttk.Button(
+    undo_button.pack(expand=True, padx=10, pady=10, ipadx=10, ipady=10)
+    update_csv_button = tk.Button(
         frame1,
         text='Update Linked rows',
         command=lambda: update_df(
             pt, df, input_records, selected_column
-        )
+        ),
+        width=200,
+        bg='#26bfa1'
     )
     # update_csv_button.grid(row=2,column=5)
 
-    update_csv_button.pack(expand=True)
-    prev_btn = ttk.Button(
-        frame1,
-        text='Prev rows',
-        command=lambda: goback(pt, selected_column)
-    )
-    # update_csv_button.grid(row=2,column=5)
+    update_csv_button.pack(expand=True, padx=10, pady=10, ipadx=10, ipady=10)
+    # prev_btn = ttk.Button(
+    #     frame1,
+    #     text='Prev rows',
+    #     command=lambda: goback(pt, selected_column)
+    # )
+    # # update_csv_button.grid(row=2,column=5)
 
-    prev_btn.pack(expand=True)
-    save_button = ttk.Button(
+    # prev_btn.pack(expand=True)
+    save_button = tk.Button(
         frame1,
         text='Save CSV',
         command=lambda: save_and_finalize(
-            base_df, pt.model.df, open_btn, save_button, frame, update_csv_button, undo_button, prev_btn, frame1)
+            base_df, pt.model.df, open_btn, save_button, frame, update_csv_button, undo_button,  frame1),
+        width=200,
+        bg='#9fb0b5',
     )
 
     # save_button.grid(row=3,column=5)
-    save_button.pack(expand=True)
+    save_button.pack(expand=True, padx=10, pady=10, ipadx=10, ipady=10)
 
     root.update()
     showinfo(
@@ -315,7 +255,7 @@ def selected_column(selected_column,
     )
 
 
-def select_file(csv_file, btn, old_file = False):
+def select_file(csv_file, btn, old_file=False):
     filetypes = (
         ('CSV files', '*.csv'),
         ('All files', '*.*')
@@ -342,8 +282,8 @@ def select_file(csv_file, btn, old_file = False):
     v = StringVar(root, "Select a column")
 
     btn.pack_forget()
-    drop = OptionMenu(root, v, *options)
-    column_btn = ttk.Button(
+    drop = OptionMenu(root, v, *options, )
+    column_btn = tk.Button(
         root,
         text='Select',
         command=lambda: selected_column(v.get(),
@@ -354,32 +294,36 @@ def select_file(csv_file, btn, old_file = False):
                                         drop,
                                         btn,
                                         old_file
-                                        )
+                                        ),
+        width=200,
     )
-    drop.pack(expand=True)
-    column_btn.pack(expand=True)
+    drop.pack(expand=True, padx=10, pady=10, ipadx=10, ipady=10)
+    column_btn.pack(expand=True, padx=10, pady=10, ipadx=10, ipady=10)
 
 
 def select_existing_file(csv_file, open_button):
     return
 
 
-mainframe = tk.Frame(root, height=800, width=200)
-mainframe.pack(expand=True)
+mainframe = tk.Frame(root, height=650, width=200)
+mainframe.pack(expand=True, padx=10, pady=10)
 
 
-open_button = ttk.Button(
+open_button = tk.Button(
     mainframe,
     text='Select CSV',
-    command=lambda: select_file(csv_file, mainframe)
+    command=lambda: select_file(csv_file, mainframe),
+    width=200,
 )
-
-open_existing_file_button = ttk.Button(
+# open_button.config(hei)
+open_existing_file_button = tk.Button(
     mainframe,
     text='Keep Editing',
-    command=lambda: select_file(csv_file, mainframe, True)
+    command=lambda: select_file(csv_file, mainframe, True),
+    width=200,
 )
 
-open_existing_file_button.pack(expand=True)
-open_button.pack(expand=True)
+open_existing_file_button.pack(
+    expand=True, padx=10, pady=10, ipadx=10, ipady=10)
+open_button.pack(expand=True, padx=10, pady=10, ipadx=10, ipady=10)
 root.mainloop()
